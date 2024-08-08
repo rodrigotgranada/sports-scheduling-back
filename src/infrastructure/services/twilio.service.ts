@@ -1,20 +1,23 @@
-// src/infrastructure/services/twilio.service.ts
 import { Injectable } from '@nestjs/common';
-import * as Twilio from 'twilio';
+import * as twilio from 'twilio';
 
 @Injectable()
 export class TwilioService {
-  private client: Twilio.Twilio;
+  private twilioClient: twilio.Twilio;
 
   constructor() {
-    this.client = Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    this.twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   }
 
-  async sendSMS(to: string, body: string) {
-    return this.client.messages.create({
-      body,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to,
-    });
+  async sendSms(to: string, body: string): Promise<void> {
+    try {
+      await this.twilioClient.messages.create({
+        body,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: `+55${to}`,
+      });
+    } catch (error) {
+      throw new Error('Falha ao enviar SMS');
+    }
   }
 }

@@ -1,0 +1,23 @@
+{
+    "viewUsers": {
+      "admin": ["name", "surname", "email", "phone", "foto", "status"],
+      "owner": ["name", "surname", "email", "phone", "foto", "status", "cpf"]
+    },
+    "editUser": {
+      "admin": ["name", "surname", "phone"],
+      "owner": ["name", "surname", "phone", "email", "cpf", "foto", "status", "role"]
+    },
+    "deleteUser": {
+      "admin": false,
+      "owner": true
+    },
+    "blockUser": {
+      "admin": true,
+      "owner": true
+    },
+    "createUser": {
+      "admin": ["name", "surname", "cpf", "email", "password", "phone", "foto", "isActive"],
+      "owner": ["name", "surname", "cpf", "email", "password", "phone", "foto", "isActive", "role"]
+    }
+  }
+  
