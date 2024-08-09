@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
 import { LoginUserDTO } from 'src/interface-adapters/dtos/LoginUserDTO';
 import { UserRegistrationService } from './auth-methods/user-registration.service';

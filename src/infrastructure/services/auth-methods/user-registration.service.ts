@@ -6,6 +6,7 @@ import { hash } from 'bcryptjs';
 import { User } from 'src/domain/entities/User';
 import { NotificationService } from '../notification.service';
 import { UploadService } from '../upload.service';
+import { LoggingService } from '../logging.service';
 
 @Injectable()
 export class UserRegistrationService {
@@ -14,6 +15,7 @@ export class UserRegistrationService {
     @Inject('ICodeRegisterRepository') private readonly codeRegisterRepository: ICodeRegisterRepository,
     private readonly notificationService: NotificationService,
     private readonly uploadService: UploadService,
+    private readonly loggingService: LoggingService,
   ) {}
 
   async register(registerUserDto: RegisterUserDTO, file?: Express.Multer.File): Promise<{ user: User; message: string }> {
@@ -78,8 +80,10 @@ export class UserRegistrationService {
       try {
         // Enviar SMS com o código usando NotificationService
         await this.notificationService.sendSms(registerUserDto.phone, `Seu código de verificação é ${code}`);
+        await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema`);
         return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação enviado via SMS.' };
       } catch (error) {
+        await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema. Código de verificação não enviado. Verifique o telefone cadastrado ou entre em contato com um administrador.`);
         return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação não enviado. Verifique o telefone cadastrado ou entre em contato com um administrador.' };
       }
     } catch (error) {

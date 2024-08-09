@@ -1,60 +1,55 @@
-// src/infrastructure/services/user.service.ts
-import { Injectable, Inject } from '@nestjs/common';
-import { IUserRepository } from 'src/domain/repositories/IUserRepository';
-import { User } from 'src/domain/entities/User';
+import { Injectable } from '@nestjs/common';
+import { UserManagementService } from './user-methods/user-management.service';
+import { UserStatusService } from './user-methods/user-status.service';
+import { UserRetrievalService } from './user-methods/user-retrieval.service';
 import { UpdateUserDTO } from 'src/interface-adapters/dtos/UpdateUserDTO';
+import { User } from 'src/domain/entities/User';
+import { CreateUserDTO } from 'src/interface-adapters/dtos/CreateUserDTO';
 
 @Injectable()
 export class UserService {
   constructor(
-    @Inject('IUserRepository') private readonly userRepository: IUserRepository,
+    private readonly userManagementService: UserManagementService,
+    private readonly userStatusService: UserStatusService,
+    private readonly userRetrievalService: UserRetrievalService,
   ) {}
 
-  async getUserById(id: string): Promise<User> {
-    return this.userRepository.findUserById(id);
+  async findUserById(id: string): Promise<User> {
+    return this.userRetrievalService.findUserById(id);
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDTO): Promise<User> {
-    const user = await this.userRepository.findUserById(id);
-    if (!user) {
-      throw new Error('User not found');
+  async findAllUsers(): Promise<User[]> {
+    return this.userRetrievalService.findAllUsers();
+  }
+
+  async createUser(createUserDto: CreateUserDTO, createdBy: string, file?: Express.Multer.File): Promise<User> {
+    return this.userManagementService.createUser(createUserDto, createdBy, file);
+  }
+
+  async updateUser(id: string, updates: Partial<UpdateUserDTO>, updatedBy: string): Promise<User> {
+    return this.userManagementService.updateUser(id, updates, updatedBy);
+  }
+
+  async deleteUserById(id: string): Promise<void> {
+    return this.userManagementService.deleteUserById(id);
+  }
+
+  async updateUserStatus(id: string, status: 'active' | 'blocked', updatedBy: string): Promise<User> {
+    return this.userStatusService.updateUserStatus(id, status, updatedBy);
+  }
+
+  async regenerateActivationCode(user: User): Promise<void> {
+    if (user.isActive !== 'pending') {
+      throw new Error('Apenas usuários pendentes podem receber um código de ativação.');
     }
-    Object.assign(user, updateUserDto);
-    return this.userRepository.updateUser(user);
+    return this.userManagementService.regenerateActivationCode(user);
   }
 
-  async updateUserStatus(id: string, status: 'active' | 'blocked'): Promise<User> {
-    return this.userRepository.updateUserStatus(id, status);
+  async updateUserPassword(id: string, newPassword: string, updatedBy: string): Promise<User> {
+    return this.userManagementService.updateUserPassword(id, newPassword, updatedBy);
   }
 
-  async deleteUser(id: string): Promise<void> {
-    return this.userRepository.deleteUserById(id);
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return this.userRepository.findAllUsers();
-  }
-
-  async createUser(createUserDto: UpdateUserDTO): Promise<User> {
-    const user = new User(
-      '', // id gerado pelo banco
-      createUserDto.firstName,
-      createUserDto.lastName,
-      createUserDto.cpf,
-      createUserDto.phone,
-      createUserDto.email,
-      createUserDto.password, // precisa ser hasheado antes de salvar
-      'pending', // estado inicial do usuário
-      'user', // role padrão
-      new Date(),
-      new Date(),
-      createUserDto.createdBy,
-      createUserDto.updatedBy,
-      createUserDto.foto
-    );
-
-    // Aqui você deve hashear a senha antes de salvar o usuário, caso contrário, a senha será salva como plain text
-
-    return this.userRepository.createUser(user);
+  async sendResetPasswordCode(user: User): Promise<void> {
+    return this.userManagementService.sendResetPasswordCode(user);
   }
 }

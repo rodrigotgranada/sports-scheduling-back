@@ -21,7 +21,7 @@ export class NotificationService {
 
   async sendSms(to: string, body: string): Promise<void> {
     try {
-      await this.twilioService.sendSms(to, body);
+      await this.twilioService.sendSms(to, body);      
       console.log(`SMS enviado para ${to}`);
     } catch (error) {
       console.error(`Erro ao enviar SMS para ${to}: ${error.message}`);

@@ -24,6 +24,9 @@ import { UserRegistrationService } from 'src/infrastructure/services/auth-method
 import { AuthenticationService } from 'src/infrastructure/services/auth-methods/authentication.service';
 import { PasswordResetService } from 'src/infrastructure/services/auth-methods/password-reset.service';
 import { CodeService } from 'src/infrastructure/services/auth-methods/code.service';
+import { LoggingService } from 'src/infrastructure/services/logging.service';
+import { LogRepository } from 'src/infrastructure/database/repositories/LogRepository';
+import { LogModel, LogSchema } from 'src/infrastructure/database/models/LogModel';
 
 @Module({
   imports: [
@@ -41,6 +44,7 @@ import { CodeService } from 'src/infrastructure/services/auth-methods/code.servi
       { name: UserModel.modelName, schema: UserSchema },
       { name: CodeRegisterModel.modelName, schema: CodeRegisterSchema },
       { name: ResetCodeModel.modelName, schema: ResetCodeSchema },
+      { name: LogModel.modelName, schema: LogSchema },
     ]),
   ],
   controllers: [AuthController],
@@ -61,6 +65,8 @@ import { CodeService } from 'src/infrastructure/services/auth-methods/code.servi
     AuthenticationService,   // Adicione AuthenticationService aqui
     PasswordResetService,    // Adicione PasswordResetService aqui
     CodeService,             // Adicione CodeService aqui
+    LoggingService,          // Adicione LoggingService aqui
+    { provide: 'ILogRepository', useClass: LogRepository }, // Adicione LogRepository aqui
   ],
   exports: [PassportModule, JwtModule],
 })

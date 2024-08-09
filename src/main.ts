@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { seedConfig } from './infrastructure/database/seed/config.seed';
+import { UploadCleanerService } from './infrastructure/services/checkAndCleanUploads'; // Importando a função
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -15,6 +17,13 @@ async function bootstrap() {
     const uri = configService.get<string>('MONGODB_URI');
     await mongoose.connect(uri);
     console.log('MongoDB connected successfully');
+
+    await seedConfig(); // Chame o seeder aqui
+
+    // Verificar e limpar uploads
+    const uploadCleanerService = app.get(UploadCleanerService);
+    await uploadCleanerService.checkAndCleanUploads();
+
   } catch (error) {
     console.error('MongoDB connection error:', error.message);
   }
