@@ -5,7 +5,7 @@ import { UserRegistrationService } from './auth-methods/user-registration.servic
 import { AuthenticationService } from './auth-methods/authentication.service';
 import { PasswordResetService } from './auth-methods/password-reset.service';
 import { CodeService } from './auth-methods/code.service';
-import { Express } from 'express';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -20,8 +20,34 @@ export class AuthService {
     return this.userRegistrationService.register(registerUserDto, file);
   }
 
-  async login(loginUserDto: LoginUserDTO) {
-    return this.authenticationService.login(loginUserDto);
+  async login(loginUserDto: LoginUserDTO, res: Response) {
+    try {
+      const { accessToken } = await this.authenticationService.login(loginUserDto);
+      res.cookie('jwt', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      });
+  
+      // Enviando a resposta com o token no corpo, como um teste
+      res.status(200).json({ message: 'Login successful', accessToken });
+    } catch (error) {
+      console.error('Erro durante o login:', error);
+      res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+  }
+  
+
+  async logout(res: Response) {
+    try {
+      res.clearCookie('jwt');
+      res.status(200).json({ message: 'Logout successful' });
+    } catch (error) {
+      console.error('Erro durante o login:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+    
   }
 
   async requestPasswordReset(emailOrPhone: string) {

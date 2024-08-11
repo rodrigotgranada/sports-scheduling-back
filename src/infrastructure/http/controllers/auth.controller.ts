@@ -1,10 +1,6 @@
-import { Controller, Post, Body, UseGuards, Request, Get, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Response } from '@nestjs/common';
 import { AuthService } from 'src/infrastructure/services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
 
 @Controller('auth')
 export class AuthController {
@@ -13,20 +9,24 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @UseInterceptors(FileInterceptor('foto')) // O nome do campo deve ser 'foto'
-  async register(@Body() registerUserDto: RegisterUserDTO, @UploadedFile() file: Express.Multer.File) {
-    return this.authService.register(registerUserDto, file);
+  async register(@Body() registerUserDto, @Response() res) {
+    return this.authService.register(registerUserDto, res);
   }
 
   @Post('login')
-  async login(@Body() loginUserDto) {
-    return this.authService.login(loginUserDto);
+  async login(@Body() loginUserDto, @Response() res) {
+    return this.authService.login(loginUserDto, res);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
     return req.user;
+  }
+
+  @Post('logout')
+  async logout(@Response() res) {
+    return this.authService.logout(res);
   }
 
   @Post('activate')

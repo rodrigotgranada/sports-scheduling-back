@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthService } from 'src/infrastructure/services/auth.service';
 import { LoginUserDTO } from 'src/interface-adapters/dtos/LoginUserDTO';
+import { Response } from 'express';
 
 @Injectable()
 export class LoginUserUseCase {
@@ -8,7 +9,7 @@ export class LoginUserUseCase {
     private readonly authService: AuthService,
   ) {}
 
-  async execute(loginUserDto: LoginUserDTO) {
-    return this.authService.login(loginUserDto);
+  async execute(loginUserDto: LoginUserDTO, res: Response) {
+    return this.authService.login(loginUserDto, res);
   }
 }

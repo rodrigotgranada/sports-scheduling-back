@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as cookieParser from 'cookie-parser';
 import { seedConfig } from './infrastructure/database/seed/config.seed';
 import { UploadCleanerService } from './infrastructure/services/checkAndCleanUploads'; // Importando a função
 
@@ -28,7 +29,14 @@ async function bootstrap() {
     console.error('MongoDB connection error:', error.message);
   }
 
+  // Configuração de CORS
+  app.enableCors({
+    origin: true, // Origem do seu frontend
+    credentials: true, // Necessário para permitir cookies
+  });
+
   app.useGlobalPipes(new ValidationPipe()); // Adicionar o ValidationPipe globalmente
+  app.use(cookieParser());
   app.use(express.json()); // Certifique-se de adicionar esta linha para habilitar o body parser
   app.use(express.urlencoded({ extended: true }));
 
