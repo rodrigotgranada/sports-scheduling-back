@@ -21,6 +21,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
+    console.log('User from JWT:', req.user); // Adicione este log
     return req.user;
   }
 

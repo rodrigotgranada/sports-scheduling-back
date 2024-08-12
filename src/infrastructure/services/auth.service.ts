@@ -23,6 +23,7 @@ export class AuthService {
   async login(loginUserDto: LoginUserDTO, res: Response) {
     try {
       const { accessToken } = await this.authenticationService.login(loginUserDto);
+      console.log(accessToken)
       res.cookie('jwt', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

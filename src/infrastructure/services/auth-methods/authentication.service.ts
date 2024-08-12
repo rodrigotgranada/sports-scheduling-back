@@ -24,7 +24,10 @@ export class AuthenticationService {
       }
 
       const payload = { sub: user.id, email: user.email, role: user.role };
-      const accessToken = this.jwtService.sign(payload);
+      const accessToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET, // Certifique-se de definir isso em seu .env
+        expiresIn: '1h', // Defina o tempo de expiração conforme necessário
+      });
 
       return { accessToken };
     } catch (error) {
