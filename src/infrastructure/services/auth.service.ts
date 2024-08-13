@@ -23,16 +23,15 @@ export class AuthService {
   async login(loginUserDto: LoginUserDTO, res: Response) {
     try {
       const { accessToken } = await this.authenticationService.login(loginUserDto);
-      console.log(accessToken)
+      console.log('accessToken', accessToken)
       res.cookie('jwt', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       });
-  
       // Enviando a resposta com o token no corpo, como um teste
-      res.status(200).json({ message: 'Login successful', accessToken });
+      res.status(200).json({ accessToken });
     } catch (error) {
       console.error('Erro durante o login:', error);
       res.status(401).json({ message: 'Credenciais inválidas' });

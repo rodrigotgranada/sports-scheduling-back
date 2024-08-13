@@ -35,6 +35,7 @@ export class UserRegistrationService {
         throw new BadRequestException('Telefone já existe');
       }
 
+      console.log('Password to hash:', registerUserDto.password);
       const hashedPassword = await hash(registerUserDto.password, 8);
       const user = new User(
         '', // ID gerado pelo banco

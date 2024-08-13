@@ -31,13 +31,19 @@ async function bootstrap() {
 
   // Configuração de CORS
   app.enableCors({
-    origin: 'http://127.0.0.1:8001', // Origem do seu frontend
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, // Necessário para permitir cookies
   });
+  app.use(cookieParser());
+
+  app.use((req, res, next) => {
+    console.log('Request Body:', req.body);
+    next();
+  });
+  
 
   app.useGlobalPipes(new ValidationPipe()); // Adicionar o ValidationPipe globalmente
-  app.use(cookieParser());
   app.use(express.json()); // Certifique-se de adicionar esta linha para habilitar o body parser
   app.use(express.urlencoded({ extended: true }));
 

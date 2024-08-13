@@ -1,6 +1,8 @@
 import { Controller, Post, Body, UseGuards, Request, Get, Response } from '@nestjs/common';
 import { AuthService } from 'src/infrastructure/services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
+import { plainToClass } from 'class-transformer';
 
 @Controller('auth')
 export class AuthController {
@@ -8,10 +10,18 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  // @Post('register')
+  // async register(@Body() registerUserDto, @Response() res) {
+  //   console.log('registerUserDto received:', registerUserDto);
+  //   return this.authService.register(registerUserDto, res);
+  // }
+
   @Post('register')
-  async register(@Body() registerUserDto, @Response() res) {
-    return this.authService.register(registerUserDto, res);
+  async register(@Body() body, @Response() res) {
+      console.log('Raw Body received:', body); // Verifique o corpo cru
+      return res.status(200).send(body); // Apenas retorne o corpo para verificação
   }
+  
 
   @Post('login')
   async login(@Body() loginUserDto, @Response() res) {
@@ -22,6 +32,12 @@ export class AuthController {
   @Get('profile')
   async getProfile(@Request() req) {
     console.log('User from JWT:', req.user); // Adicione este log
+    return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('session')
+  async getSession(@Request() req) {
     return req.user;
   }
 
