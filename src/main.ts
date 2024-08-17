@@ -37,10 +37,10 @@ async function bootstrap() {
   });
   app.use(cookieParser());
 
-  app.use((req, res, next) => {
-    console.log('Request Body:', req.body);
-    next();
-  });
+  // app.use((req, res, next) => {
+  //   console.log('Request Body:', req.body);
+  //   next();
+  // });
   
 
   app.useGlobalPipes(new ValidationPipe()); // Adicionar o ValidationPipe globalmente

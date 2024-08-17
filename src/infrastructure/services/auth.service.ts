@@ -16,8 +16,13 @@ export class AuthService {
     private readonly codeService: CodeService,
   ) {}
 
-  async register(registerUserDto: RegisterUserDTO, file?: Express.Multer.File) {
-    return this.userRegistrationService.register(registerUserDto, file);
+  async register(registerUserDto: RegisterUserDTO, file?: Express.Multer.File | null, res?: Response) {
+    try {
+      const result = await this.userRegistrationService.register(registerUserDto, file);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(error.status || 500).json({ message: error.response?.message || 'Registration failed' });
+    }
   }
 
   async login(loginUserDto: LoginUserDTO, res: Response) {

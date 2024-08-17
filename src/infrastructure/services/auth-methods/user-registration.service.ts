@@ -18,8 +18,10 @@ export class UserRegistrationService {
     private readonly loggingService: LoggingService,
   ) {}
 
-  async register(registerUserDto: RegisterUserDTO, file?: Express.Multer.File): Promise<{ user: User; message: string }> {
+  async register(registerUserDto: RegisterUserDTO, file: Express.Multer.File | null): Promise<{ user: User; message: string }> {
+    console.log('Inicio do registro:', registerUserDto);
     try {
+      // Verificações de existência de usuário (email, cpf, telefone)
       const existingUserByEmail = await this.userRepository.findUserByEmail(registerUserDto.email);
       if (existingUserByEmail) {
         throw new BadRequestException('Email já existe');
@@ -35,7 +37,7 @@ export class UserRegistrationService {
         throw new BadRequestException('Telefone já existe');
       }
 
-      console.log('Password to hash:', registerUserDto.password);
+      console.log('Criptografando a senha');
       const hashedPassword = await hash(registerUserDto.password, 8);
       const user = new User(
         '', // ID gerado pelo banco
@@ -55,22 +57,24 @@ export class UserRegistrationService {
       );
 
       const createdUser = await this.userRepository.createUser(user);
+      console.log('Usuário criado com sucesso:', createdUser);
 
       // Atualize os campos createdBy e updatedBy
       createdUser.createdBy = createdUser.id;
       createdUser.updatedBy = createdUser.id;
 
-      if (file) {
+      if (file && file.mimetype.startsWith('image/')) {
         const photoUrl = await this.uploadService.uploadFile(file, createdUser.id);
         createdUser.foto = photoUrl;
-      } else {
-        this.uploadService.createDirectoryForUserWithoutPhoto(createdUser.id);
+      } else if (file) {
+        throw new BadRequestException('Formato de arquivo inválido');
       }
+    
 
       // Salve novamente para atualizar os campos createdBy, updatedBy e foto
       await this.userRepository.updateUser(createdUser);
 
-      // Gerar código de 6 dígitos e salvar em coderegisters
+      // Gerar código de verificação e salvar
       await this.deleteExistingCode(createdUser.id);
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       await this.codeRegisterRepository.createCodeRegister({
@@ -79,15 +83,15 @@ export class UserRegistrationService {
       });
 
       try {
-        // Enviar SMS com o código usando NotificationService
         await this.notificationService.sendSms(registerUserDto.phone, `Seu código de verificação é ${code}`);
         await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema`);
         return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação enviado via SMS.' };
       } catch (error) {
-        await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema. Código de verificação não enviado. Verifique o telefone cadastrado ou entre em contato com um administrador.`);
-        return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação não enviado. Verifique o telefone cadastrado ou entre em contato com um administrador.' };
+        await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema. Código de verificação não enviado.`);
+        return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação não enviado. Verifique o telefone cadastrado.' };
       }
     } catch (error) {
+      console.error('Erro durante o registro do usuário:', error);
       throw new InternalServerErrorException(error.message);
     }
   }

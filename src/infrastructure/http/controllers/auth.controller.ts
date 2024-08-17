@@ -1,8 +1,10 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Response } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Response, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { AuthService } from 'src/infrastructure/services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
 import { plainToClass } from 'class-transformer';
+import { validate } from 'class-validator';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('auth')
 export class AuthController {
@@ -17,9 +19,16 @@ export class AuthController {
   // }
 
   @Post('register')
-  async register(@Body() body, @Response() res) {
-      console.log('Raw Body received:', body); // Verifique o corpo cru
-      return res.status(200).send(body); // Apenas retorne o corpo para verificação
+  @UseInterceptors(FileInterceptor('foto'))
+  async register(
+    @Body() body, 
+    @UploadedFile() file: Express.Multer.File, 
+    @Response() res
+  ) {
+    console.log('Body received:', body);
+    const registerUserDto = plainToClass(RegisterUserDTO, body);
+    console.log('registerUserDto after transformation:', registerUserDto);
+    return this.authService.register(registerUserDto, file, res);
   }
   
 
