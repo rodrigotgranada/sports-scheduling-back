@@ -25,6 +25,7 @@ export class CodeService {
     user.isActive = 'active';
     await this.userRepository.updateUser(user);
     await this.codeRegisterRepository.deleteCodeRegisterByUserId(user.id);
+    
 
     return 'Usuário ativado com sucesso';
   }

@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { IUserRepository } from 'src/domain/repositories/IUserRepository';
 import { ICodeRegisterRepository } from 'src/domain/repositories/ICodeRegisterRepository';
 import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
@@ -10,6 +10,8 @@ import { LoggingService } from '../logging.service';
 
 @Injectable()
 export class UserRegistrationService {
+  private readonly logger = new Logger(UserRegistrationService.name);
+
   constructor(
     @Inject('IUserRepository') private readonly userRepository: IUserRepository,
     @Inject('ICodeRegisterRepository') private readonly codeRegisterRepository: ICodeRegisterRepository,
@@ -19,7 +21,7 @@ export class UserRegistrationService {
   ) {}
 
   async register(registerUserDto: RegisterUserDTO, file: Express.Multer.File | null): Promise<{ user: User; message: string }> {
-    console.log('Inicio do registro:', registerUserDto);
+    console.log('Início do registro:', registerUserDto);
     try {
       // Verificações de existência de usuário (email, cpf, telefone)
       const existingUserByEmail = await this.userRepository.findUserByEmail(registerUserDto.email);
@@ -70,7 +72,6 @@ export class UserRegistrationService {
         throw new BadRequestException('Formato de arquivo inválido');
       }
     
-
       // Salve novamente para atualizar os campos createdBy, updatedBy e foto
       await this.userRepository.updateUser(createdUser);
 
@@ -82,11 +83,11 @@ export class UserRegistrationService {
         code,
       });
 
-      try {
-        await this.notificationService.sendSms(registerUserDto.phone, `Seu código de verificação é ${code}`);
+      const smsResult = await this.notificationService.sendSms(registerUserDto.phone, `Seu código de verificação é ${code}`);
+      if (smsResult.success) {
         await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema`);
         return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação enviado via SMS.' };
-      } catch (error) {
+      } else {
         await this.loggingService.logActivity('createUser', createdUser.id, `Usuário ${createdUser.firstName} ${createdUser.lastName} registrado no sistema. Código de verificação não enviado.`);
         return { user: createdUser, message: 'Usuário registrado com sucesso. Código de verificação não enviado. Verifique o telefone cadastrado.' };
       }

@@ -27,6 +27,7 @@ import { CodeService } from 'src/infrastructure/services/auth-methods/code.servi
 import { LoggingService } from 'src/infrastructure/services/logging.service';
 import { LogRepository } from 'src/infrastructure/database/repositories/LogRepository';
 import { LogModel, LogSchema } from 'src/infrastructure/database/models/LogModel';
+import { StatusGateway } from 'src/infrastructure/gateways/status.gateway';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { LogModel, LogSchema } from 'src/infrastructure/database/models/LogModel
   ],
   controllers: [AuthController],
   providers: [
+    StatusGateway,
     AuthService,
     RegisterUserUseCase,
     LoginUserUseCase,

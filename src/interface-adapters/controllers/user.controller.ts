@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Body, Post, UseGuards, Request, ForbiddenException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Body, Post, UseGuards, Request, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { UserService } from 'src/infrastructure/services/user.service';
 import { ConfigService } from 'src/infrastructure/services/config.service';
 import { LoggingService } from 'src/infrastructure/services/logging.service';
@@ -8,6 +8,7 @@ import { UpdateUserDTO } from 'src/interface-adapters/dtos/UpdateUserDTO';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadCleanerService } from 'src/infrastructure/services/checkAndCleanUploads';
 import { ResetPasswordDTO } from 'src/interface-adapters/dtos/ResetPasswordDTO'; 
+import { UploadService } from 'src/infrastructure/services/upload.service';
 
 @Controller('users')
 export class UserController {
@@ -16,19 +17,51 @@ export class UserController {
     private readonly loggingService: LoggingService,
     private readonly configService: ConfigService,
     private readonly uploadCleanerService: UploadCleanerService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@Request() req) {
-    console.log('req', req )
     return this.userService.findUserById(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  async updateMe(@Request() req, @Body() updateUserDto: UpdateUserDTO) {
-    return this.userService.updateUser(req.user.userId, updateUserDto, req.user.userId);
+  @UseInterceptors(FileInterceptor('foto'))
+  async updateMe(
+    @Request() req, 
+    @Body() updateUserDto: UpdateUserDTO, 
+    @UploadedFile() file?: Express.Multer.File // Agora o arquivo é opcional
+  ) {
+    return this.userService.updateUser(req.user.userId, updateUserDto, req.user.userId, file);
+  }
+
+  @UseGuards(JwtAuthGuard)
+@Patch('me/photo')
+async updateProfilePhoto(
+  @Request() req,
+  @UploadedFile() file?: Express.Multer.File, // Foto opcional para permitir a remoção
+) {
+  if (!file) {
+    await this.userService.updateUser(req.user.userId, { foto: null }, req.user.userId);
+    return { message: 'Foto de perfil removida com sucesso' };
+  }
+  const photoUrl = await this.uploadService.uploadFile(file, req.user.userId);
+  await this.userService.updateUser(req.user.userId, { foto: photoUrl }, req.user.userId);
+  return { message: 'Foto de perfil atualizada com sucesso', photoUrl };
+}
+
+  @Post('check-email')
+  async checkEmail(@Body() body: { email: string }): Promise<{ exists: boolean }> {
+    const exists = await this.userService.isEmailInUse(body.email);
+    return { exists };
+  }
+
+  @Post('check-password')
+  async checkPassword(@Body() body: { email: string, password: string }): Promise<{ valid: boolean }> {
+    const valid = await this.userService.validatePassword(body.email, body.password);
+    return { valid };
   }
 
   @UseGuards(JwtAuthGuard)

@@ -1,5 +1,4 @@
-// src/infrastructure/services/user-methods/user-management.service.ts
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, Logger, ConflictException } from '@nestjs/common';
 import { IUserRepository } from 'src/domain/repositories/IUserRepository';
 import { Inject } from '@nestjs/common';
 import { CreateUserDTO } from 'src/interface-adapters/dtos/CreateUserDTO';
@@ -13,6 +12,8 @@ import { NotificationService } from 'src/infrastructure/services/notification.se
 
 @Injectable()
 export class UserManagementService {
+  private readonly logger = new Logger(UserManagementService.name);
+
   constructor(
     @Inject('IUserRepository') private readonly userRepository: IUserRepository,
     @Inject('ICodeRegisterRepository') private readonly codeRegisterRepository: ICodeRegisterRepository,
@@ -62,22 +63,54 @@ export class UserManagementService {
       code,
     });
 
-    try {
-      await this.notificationService.sendSms(user.phone, `Seu código de verificação é ${code}`);
-    } catch (error) {
-      console.error('Erro ao enviar SMS:', error.message);
-      throw new InternalServerErrorException('Não foi possível enviar o código de verificação via SMS');
+    const smsResult = await this.notificationService.sendSms(user.phone, `Seu código de verificação é ${code}`);
+    if (!smsResult.success) {
+      this.logger.error(`Falha ao enviar código de verificação por SMS: ${smsResult.error}`);
+      // Notificar o usuário sobre a falha de envio de SMS, mas continuar o processo
     }
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDTO, updatedBy: string): Promise<User> {
+  async updateUser(
+    id: string, 
+    updateUserDto: UpdateUserDTO, 
+    updatedBy: string, 
+    file?: Express.Multer.File // O arquivo é opcional aqui também
+  ): Promise<User> {
     const user = await this.userRepository.findUserById(id);
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
     }
+
+    // Verificar se o telefone foi alterado
+    if (updateUserDto.phone && updateUserDto.phone !== user.phone) {
+      user.isActive = 'pending'; // Alterar status para pending
+      user.phone = updateUserDto.phone; // Atualizar o telefone
+
+      // Gerar e enviar novo código de ativação
+      await this.regenerateActivationCode(user);
+    }
+
+    // Verifique se a senha foi alterada e, em caso afirmativo, criptografe a nova senha
+    if (updateUserDto.password) {
+      updateUserDto.password = await hash(updateUserDto.password, 8);
+    }
+  
     Object.assign(user, updateUserDto);
     user.updatedBy = updatedBy;
-    return this.userRepository.updateUser(user);
+  
+    if (file) {
+      const photoUrl = await this.uploadService.uploadFile(file, user.id);
+      user.foto = photoUrl;
+    }
+  
+    try {
+      return await this.userRepository.updateUser(user);
+    } catch (error) {
+      if (error.code === 11000 && error.message.includes('cpf')) {
+        throw new ConflictException('O CPF informado já está em uso.');
+      }
+      throw new InternalServerErrorException('Erro ao atualizar o perfil.');
+    }
   }
 
   async deleteUserById(id: string): Promise<void> {
@@ -107,25 +140,22 @@ export class UserManagementService {
       code,
     });
 
-    const notifications: Promise<void>[] = [];
+    const notifications: string[] = [];
 
-    if (user.phone) {
-      notifications.push(
-        this.notificationService.sendSms(user.phone, `Seu código de redefinição de senha é ${code}`)
-      );
+    const smsResult = await this.notificationService.sendSms(user.phone, `Seu código de redefinição de senha é ${code}`);
+    if (!smsResult.success) {
+      this.logger.error(`Falha ao enviar SMS: ${smsResult.error}`);
+      notifications.push('SMS não enviado');
     }
 
-    if (user.email) {
-      notifications.push(
-        this.notificationService.sendEmail(user.email, 'Código de Redefinição de Senha', `Seu código de redefinição de senha é ${code}`)
-      );
+    const emailResult = await this.notificationService.sendEmail(user.email, 'Código de Redefinição de Senha', `Seu código de redefinição de senha é ${code}`);
+    if (!emailResult.success) {
+      this.logger.error(`Falha ao enviar Email: ${emailResult.error}`);
+      notifications.push('Email não enviado');
     }
 
-    try {
-      await Promise.all(notifications);
-    } catch (error) {
-      console.error('Erro ao enviar código de redefinição de senha:', error.message);
-      throw new InternalServerErrorException('Não foi possível enviar o código de redefinição via SMS ou Email');
+    if (notifications.length > 0) {
+      throw new InternalServerErrorException(`Código de redefinição gerado, mas falha ao enviar: ${notifications.join(', ')}`);
     }
   }
 
@@ -137,11 +167,10 @@ export class UserManagementService {
       code,
     });
 
-    try {
-      await this.notificationService.sendSms(user.phone, `Seu código de verificação é ${code}`);
-    } catch (error) {
-      console.error('Erro ao enviar SMS:', error.message);
-      throw new InternalServerErrorException('Não foi possível enviar o código de verificação via SMS');
+    const smsResult = await this.notificationService.sendSms(user.phone, `Seu código de verificação é ${code}`);
+    if (!smsResult.success) {
+      this.logger.error(`Erro ao enviar SMS: ${smsResult.error}`);
+      // Notificar o usuário sobre a falha de envio de SMS, mas continuar o processo
     }
   }
 
@@ -157,5 +186,18 @@ export class UserManagementService {
     if (existingCode) {
       await this.resetCodeRepository.deleteResetCodeByUserId(userId);
     }
+  }
+
+  async updateUserProfilePhoto(userId: string, file: Express.Multer.File): Promise<User> {
+    const user = await this.userRepository.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+  
+    // Utilize o UploadService para armazenar a nova foto
+    const photoUrl = await this.uploadService.uploadFile(file, userId);
+    user.foto = photoUrl;
+  
+    return this.userRepository.updateUser(user);
   }
 }

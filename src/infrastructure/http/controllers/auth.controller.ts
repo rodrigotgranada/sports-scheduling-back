@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Response, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Response, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { AuthService } from 'src/infrastructure/services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RegisterUserDTO } from 'src/interface-adapters/dtos/RegisterUserDTO';
@@ -50,14 +50,19 @@ export class AuthController {
     return req.user;
   }
 
-  @Post('logout')
-  async logout(@Response() res) {
-    return this.authService.logout(res);
-  }
+  // @Post('logout')
+  // async logout(@Response() res) {
+  //   return this.authService.logout(res);
+  // }
 
   @Post('activate')
   async activateUser(@Body() body: { email: string, code: string }) {
-    return this.authService.activateUser(body.email, body.code);
+    const activationResult = await this.authService.activateUser(body.email, body.code);
+    if (activationResult) {
+      return { success: true, message: 'Conta ativada com sucesso' };
+    } else {
+      throw new BadRequestException('Código de ativação inválido.');
+    }
   }
 
   @Post('regenerate-activation-code')
@@ -66,8 +71,9 @@ export class AuthController {
   }
 
   @Post('request-password-reset')
-  async requestPasswordReset(@Body('emailOrPhone') emailOrPhone: string) {
-    return this.authService.requestPasswordReset(emailOrPhone);
+  async requestPasswordReset(@Body('email') email: string) {
+    // console.log('Email recebido:', emailOrPhone); // Adicione isso para verificar o valor recebido
+    return this.authService.requestPasswordReset(email);
   }
 
   @Post('reset-password')
@@ -78,4 +84,7 @@ export class AuthController {
   ) {
     return this.authService.resetPassword(email, code, newPassword);
   }
+
+  
+  
 }

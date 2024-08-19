@@ -12,8 +12,8 @@ export class PasswordResetService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async requestPasswordReset(emailOrPhone: string): Promise<string> {
-    const user = await this.userRepository.findUserByEmail(emailOrPhone) || await this.userRepository.findUserByPhone(emailOrPhone);
+  async requestPasswordReset(email: string): Promise<string> {
+    const user = await this.userRepository.findUserByEmail(email) || await this.userRepository.findUserByPhone(email);
     if (!user) {
       throw new BadRequestException('Usuário não encontrado');
     }
@@ -27,13 +27,14 @@ export class PasswordResetService {
     });
 
     try {
-      if (user.email === emailOrPhone) {
+      if (user.email === email) {
         await this.notificationService.sendEmail(user.email, 'Código de Redefinição de Senha', `Seu código de redefinição de senha é ${code}`);
         return 'Código de redefinição de senha enviado com sucesso para o email informado';
-      } else if (user.phone === emailOrPhone) {
-        await this.notificationService.sendSms(user.phone, `Seu código de redefinição de senha é ${code}`);
-        return 'Código de redefinição de senha enviado com sucesso para o número informado';
       }
+      //  else if (user.phone === email) {
+      //   await this.notificationService.sendSms(user.phone, `Seu código de redefinição de senha é ${code}`);
+      //   return 'Código de redefinição de senha enviado com sucesso para o número informado';
+      // }
     } catch (error) {
       console.error(`Erro ao enviar o código de redefinição de senha: ${error.message}`);
       throw new InternalServerErrorException('Erro ao enviar o código de redefinição de senha');
@@ -56,6 +57,15 @@ export class PasswordResetService {
     const resetCode = await this.resetCodeRepository.findResetCodeByUserId(user.id);
     if (!resetCode || resetCode.code !== code) {
       throw new BadRequestException('Código de redefinição de senha inválido');
+    }
+
+    // Verificação da validade do código
+    const currentTime = new Date().getTime();
+    const codeTime = new Date(resetCode.createdAt).getTime();
+    const expirationTime = 30 * 60 * 1000; // 30 minutos em milissegundos
+
+    if (currentTime - codeTime > expirationTime) {
+      throw new BadRequestException('Código de redefinição de senha expirado');
     }
 
     const hashedPassword = await hash(newPassword, 8);

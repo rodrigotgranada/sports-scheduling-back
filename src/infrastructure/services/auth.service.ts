@@ -19,9 +19,12 @@ export class AuthService {
   async register(registerUserDto: RegisterUserDTO, file?: Express.Multer.File | null, res?: Response) {
     try {
       const result = await this.userRegistrationService.register(registerUserDto, file);
-      res.status(201).json(result);
+      res.status(201).json({ message: 'Registro bem-sucedido!', data: result });
     } catch (error) {
-      res.status(error.status || 500).json({ message: error.response?.message || 'Registration failed' });
+      console.error('Erro durante o registro:', error);
+      const statusCode = error.status || 500;
+      const errorMessage = error.response?.message || 'Ocorreu um erro durante o registro';
+      res.status(statusCode).json({ message: errorMessage });
     }
   }
 
@@ -44,19 +47,23 @@ export class AuthService {
   }
   
 
-  async logout(res: Response) {
-    try {
-      res.clearCookie('jwt');
-      res.status(200).json({ message: 'Logout successful' });
-    } catch (error) {
-      console.error('Erro durante o login:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-    
-  }
+  // async logout(res: Response) {
+  //   console.log("SAIR")
+  //   try {
+  //     res.clearCookie('jwt', {
+  //       httpOnly: true,
+  //       secure: process.env.NODE_ENV === 'production',
+  //       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  //     });
+  //     res.status(200).json({ message: 'Logout successful' });
+  //   } catch (error) {
+  //     console.error('Erro durante o logout:', error);
+  //     res.status(500).json({ message: 'Internal server error' });
+  //   }
+  // }
 
-  async requestPasswordReset(emailOrPhone: string) {
-    return this.passwordResetService.requestPasswordReset(emailOrPhone);
+  async requestPasswordReset(email: string) {
+    return this.passwordResetService.requestPasswordReset(email);
   }
 
   async resetPassword(email: string, code: string, newPassword: string) {
