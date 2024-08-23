@@ -38,19 +38,19 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-@Patch('me/photo')
-async updateProfilePhoto(
-  @Request() req,
-  @UploadedFile() file?: Express.Multer.File, // Foto opcional para permitir a remoção
-) {
-  if (!file) {
-    await this.userService.updateUser(req.user.userId, { foto: null }, req.user.userId);
-    return { message: 'Foto de perfil removida com sucesso' };
+  @Patch('me/photo')
+  async updateProfilePhoto(
+    @Request() req,
+    @UploadedFile() file?: Express.Multer.File, // Foto opcional para permitir a remoção
+  ) {
+    if (!file) {
+      await this.userService.updateUser(req.user.userId, { foto: null }, req.user.userId);
+      return { message: 'Foto de perfil removida com sucesso' };
+    }
+    const photoUrl = await this.uploadService.uploadFile(file, req.user.userId);
+    await this.userService.updateUser(req.user.userId, { foto: photoUrl }, req.user.userId);
+    return { message: 'Foto de perfil atualizada com sucesso', photoUrl };
   }
-  const photoUrl = await this.uploadService.uploadFile(file, req.user.userId);
-  await this.userService.updateUser(req.user.userId, { foto: photoUrl }, req.user.userId);
-  return { message: 'Foto de perfil atualizada com sucesso', photoUrl };
-}
 
   @Post('check-email')
   async checkEmail(@Body() body: { email: string }): Promise<{ exists: boolean }> {
@@ -178,9 +178,20 @@ async updateProfilePhoto(
 
   @UseGuards(JwtAuthGuard)
   @Patch('admin/:id')
-  async updateUserById(@Param('id') id: string, @Body() updateUserDto: UpdateUserDTO, @Request() req) {
+  @UseInterceptors(FileInterceptor('foto'))
+  async updateUserById(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDTO,
+    @Request() req,
+    @UploadedFile() file?: Express.Multer.File, // Agora o arquivo é opcional
+  ) {
+    console.log('SEILA')
     const config = await this.configService.getConfig();
     const role = req.user.role;
+
+    console.log('file', file)
+    console.log('config', config)
+    console.log('role', role)
 
     // Verificar permissões para editar usuários
     if (!config.canEditUsers.includes(role)) {
@@ -194,13 +205,31 @@ async updateProfilePhoto(
     }
 
     // Filtrar campos editáveis com base nas permissões configuradas
-    const allowedFields = config.editableFields;
+    // const allowedFields = config.editableFields;
+    // const updates = {};
+    // for (const field of allowedFields) {
+    //   if (updateUserDto[field] !== undefined) {
+    //     updates[field] = updateUserDto[field];
+    //   }
+    // }
+
+    
+    // if (file) {
+    //   const filePath = await this.uploadService.uploadFile(file, id);
+    //   updateUserDto.foto = filePath;
+    // }
     const updates = {};
-    for (const field of allowedFields) {
-      if (updateUserDto[field] !== undefined) {
-        updates[field] = updateUserDto[field];
-      }
+  for (const field of config.editableFields) {
+    if (updateUserDto[field] !== undefined) {
+      updates[field] = updateUserDto[field];
     }
+  }
+
+  if (file) {
+    const filePath = await this.uploadService.uploadFile(file, id);
+    updates['foto'] = filePath;
+  }
+
 
     return this.userService.updateUser(id, updates, req.user.userId);
   }

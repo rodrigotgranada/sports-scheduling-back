@@ -12,6 +12,7 @@ import { LogModule } from './infrastructure/http/modules/log.module';
 import { ConfigModule as CustomConfigModule } from './infrastructure/http/modules/config.module'; 
 import { ConfigController } from './interface-adapters/controllers/config.controller';
 import { LogRequestMiddleware } from './common/middleware/log-request.middleware';
+import { TesteModule } from './teste/teste.module';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { LogRequestMiddleware } from './common/middleware/log-request.middleware
     TwilioModule,
     NotificationModule,
     LogModule, // Novo módulo de logs
-    CustomConfigModule,
+    CustomConfigModule, TesteModule,
   ],
   controllers: [ConfigController],
   providers: [],

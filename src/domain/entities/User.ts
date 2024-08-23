@@ -14,5 +14,6 @@ export class User {
     public createdBy: string,
     public updatedBy: string,
     public foto: string // Adicionando o campo foto
+    
   ) {}
 }

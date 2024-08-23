@@ -77,4 +77,6 @@ export class AuthService {
   async regenerateActivationCode(email: string) {
     return this.codeService.regenerateActivationCode(email);
   }
+
+  
 }
