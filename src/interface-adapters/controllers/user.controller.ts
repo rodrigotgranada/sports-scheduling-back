@@ -205,30 +205,30 @@ export class UserController {
     }
 
     // Filtrar campos editáveis com base nas permissões configuradas
-    // const allowedFields = config.editableFields;
-    // const updates = {};
-    // for (const field of allowedFields) {
-    //   if (updateUserDto[field] !== undefined) {
-    //     updates[field] = updateUserDto[field];
-    //   }
-    // }
+    const allowedFields = config.editableFields;
+    const updates = {};
+    for (const field of allowedFields) {
+      if (updateUserDto[field] !== undefined) {
+        updates[field] = updateUserDto[field];
+      }
+    }
 
     
-    // if (file) {
-    //   const filePath = await this.uploadService.uploadFile(file, id);
-    //   updateUserDto.foto = filePath;
-    // }
-    const updates = {};
-  for (const field of config.editableFields) {
-    if (updateUserDto[field] !== undefined) {
-      updates[field] = updateUserDto[field];
+    if (file) {
+      const filePath = await this.uploadService.uploadFile(file, id);
+      updateUserDto.foto = filePath;
     }
-  }
+  //   const updates = {};
+  // for (const field of config.editableFields) {
+  //   if (updateUserDto[field] !== undefined) {
+  //     updates[field] = updateUserDto[field];
+  //   }
+  // }
 
-  if (file) {
-    const filePath = await this.uploadService.uploadFile(file, id);
-    updates['foto'] = filePath;
-  }
+  // if (file) {
+  //   const filePath = await this.uploadService.uploadFile(file, id);
+  //   updates['foto'] = filePath;
+  // }
 
 
     return this.userService.updateUser(id, updates, req.user.userId);
